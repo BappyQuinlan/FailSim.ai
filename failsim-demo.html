@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAILSIM — War Room Demo</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: #f5f5f3;
+    color: #1a1a18;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .outer {
+    width: 100%;
+    max-width: 1040px;
+  }
+
+  .product-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .product-name {
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: #1a1a18;
+  }
+  .product-tagline {
+    font-size: 13px;
+    color: #888780;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr 210px;
+    grid-template-rows: auto 1fr;
+    height: 580px;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  }
+
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 0.5px solid #d3d1c7;
+    background: #f8f8f6;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 14px; font-weight: 500; letter-spacing: 0.1em; color: #1a1a18; }
+  .p1-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: #A32D2D; color: #FCEBEB; font-weight: 500; }
+  .scenario-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: #FCEBEB; color: #A32D2D; border: 0.5px solid #F09595; font-weight: 500; }
+  .elapsed { font-size: 12px; color: #888780; font-variant-numeric: tabular-nums; }
+  .session-id { font-size: 11px; color: #888780; }
+  .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: #E24B4A; display: inline-block; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  /* LEFT */
+  .left-col {
+    border-right: 0.5px solid #d3d1c7;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    background: #fafaf8;
+  }
+  .panel-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: #888780;
+    padding: 10px 14px 6px;
+    text-transform: uppercase;
+  }
+  .roster-item { display: flex; align-items: center; gap: 8px; padding: 7px 14px; font-size: 12px; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; flex-shrink: 0; }
+  .av-human { background: #E6F1FB; color: #185FA5; }
+  .av-ai { background: #EEEDFE; color: #534AB7; }
+  .av-warn { background: #FAEEDA; color: #854F0B; }
+  .roster-name { font-weight: 500; color: #1a1a18; line-height: 1.2; }
+  .roster-role { font-size: 10px; color: #888780; }
+  .online-dot { width: 5px; height: 5px; border-radius: 50%; background: #3B6D11; margin-left: auto; flex-shrink: 0; }
+  .offline-dot { width: 5px; height: 5px; border-radius: 50%; background: #b4b2a9; margin-left: auto; flex-shrink: 0; }
+  .divider { height: 0.5px; background: #d3d1c7; margin: 6px 14px; }
+
+  /* CENTER */
+  .center-col { display: flex; flex-direction: column; overflow: hidden; }
+  .timeline-tabs { display: flex; border-bottom: 0.5px solid #d3d1c7; padding: 0 16px; }
+  .tab { font-size: 11px; padding: 9px 12px; cursor: pointer; color: #888780; border-bottom: 2px solid transparent; margin-bottom: -0.5px; user-select: none; }
+  .tab.active { color: #1a1a18; border-bottom-color: #1a1a18; font-weight: 500; }
+  .tab:hover:not(.active) { color: #444441; }
+  .timeline { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .tl-entry { display: flex; gap: 10px; align-items: flex-start; font-size: 12px; }
+  .tl-time { font-size: 10px; color: #888780; min-width: 40px; padding-top: 2px; font-variant-numeric: tabular-nums; }
+  .tl-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .dot-system { background: #888780; }
+  .dot-ai { background: #7F77DD; }
+  .dot-action { background: #E24B4A; }
+  .dot-im { background: #1D9E75; }
+  .dot-comms { background: #378ADD; }
+  .tl-body { flex: 1; line-height: 1.5; }
+  .tl-actor { font-weight: 500; color: #1a1a18; }
+  .tl-msg { color: #5F5E5A; }
+  .tl-tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 3px; margin-left: 4px; }
+  .tag-breach { background: #FCEBEB; color: #A32D2D; }
+  .tag-ok { background: #EAF3DE; color: #3B6D11; }
+  .tag-warn { background: #FAEEDA; color: #854F0B; }
+  .tag-inject { background: #EEEDFE; color: #534AB7; }
+
+  .action-bar { border-top: 0.5px solid #d3d1c7; padding: 10px 16px; display: flex; gap: 8px; align-items: center; background: #fafaf8; }
+  .action-btn { font-size: 12px; padding: 7px 14px; border: 0.5px solid #b4b2a9; border-radius: 8px; cursor: pointer; background: transparent; color: #1a1a18; display: flex; align-items: center; gap: 6px; font-family: inherit; transition: background 0.15s; }
+  .action-btn:hover { background: #f1efe8; }
+  .action-btn.primary { background: #A32D2D; color: #FCEBEB; border-color: #A32D2D; }
+  .action-btn.primary:hover { background: #791F1F; }
+
+  /* RIGHT */
+  .right-col { border-left: 0.5px solid #d3d1c7; overflow-y: auto; display: flex; flex-direction: column; background: #fafaf8; }
+  .score-card { margin: 10px 12px; padding: 12px; background: #f1efe8; border-radius: 8px; }
+  .score-num { font-size: 28px; font-weight: 500; line-height: 1; color: #1a1a18; }
+  .score-label { font-size: 10px; color: #888780; margin-top: 3px; }
+  .score-sub { font-size: 11px; color: #A32D2D; margin-top: 4px; }
+  .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; font-size: 11px; }
+  .metric-key { color: #888780; }
+  .metric-val { font-weight: 500; font-variant-numeric: tabular-nums; color: #1a1a18; }
+  .metric-val.bad { color: #A32D2D; }
+  .metric-val.ok { color: #3B6D11; }
+  .metric-val.warn { color: #854F0B; }
+
+  .ai-suggest { margin: 8px 12px; padding: 10px 12px; border: 0.5px solid #AFA9EC; border-radius: 8px; background: #EEEDFE; }
+  .ai-suggest-label { font-size: 10px; color: #534AB7; font-weight: 500; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .ai-suggest-text { font-size: 11px; color: #3C3489; line-height: 1.5; }
+  .ai-next-fail { margin: 0 12px 8px; padding: 9px 11px; border: 0.5px solid #F0997B; border-radius: 8px; background: #FAECE7; }
+  .ai-next-label { font-size: 10px; color: #993C1D; font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .ai-next-text { font-size: 11px; color: #712B13; line-height: 1.5; }
+
+  .sla-bar-wrap { margin: 4px 12px 10px; }
+  .sla-bar-label { font-size: 10px; color: #888780; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .sla-bar { height: 4px; background: #d3d1c7; border-radius: 2px; overflow: hidden; }
+  .sla-fill { height: 100%; border-radius: 2px; transition: width 1s linear; }
+  .fill-red { background: #E24B4A; }
+  .fill-amber { background: #BA7517; }
+  .fill-green { background: #639922; }
+
+  /* MODAL */
+  .wrapper { position: relative; }
+  .modal-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.35); border-radius: 12px; z-index: 9; }
+  .inject-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; background: #fff; border: 0.5px solid #b4b2a9; border-radius: 12px; z-index: 10; padding: 20px; }
+  .modal-title { font-size: 14px; font-weight: 500; margin-bottom: 14px; color: #1a1a18; }
+  .modal-option { padding: 10px 12px; border: 0.5px solid #d3d1c7; border-radius: 8px; margin-bottom: 8px; cursor: pointer; font-size: 12px; transition: background 0.15s; }
+  .modal-option:hover { background: #f1efe8; border-color: #b4b2a9; }
+  .modal-option strong { display: block; font-weight: 500; color: #1a1a18; margin-bottom: 2px; }
+  .modal-option span { color: #888780; }
+  .modal-cancel { font-size: 12px; color: #888780; cursor: pointer; text-align: right; margin-top: 8px; }
+  .modal-cancel:hover { color: #1a1a18; }
+
+  .footer-note {
+    margin-top: 12px;
+    font-size: 11px;
+    color: #b4b2a9;
+    text-align: center;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d3d1c7; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="outer">
+  <div class="product-header">
+    <span class="product-name">FAILSIM</span>
+    <span class="product-tagline">Incident response simulation platform — interactive war room demo</span>
+  </div>
+
+  <div class="wrapper">
+    <div class="modal-overlay" id="overlay" onclick="closeModal()"></div>
+    <div class="inject-modal" id="injectModal">
+      <div class="modal-title">Inject failure scenario</div>
+      <div class="modal-option" onclick="injectFailure('redis')">
+        <strong>Redis OOM</strong>
+        <span>Cache layer exhausted — all reads fall to DB</span>
+      </div>
+      <div class="modal-option" onclick="injectFailure('tls')">
+        <strong>TLS cert expiry</strong>
+        <span>SSL handshake failing on api.prod.example.com</span>
+      </div>
+      <div class="modal-option" onclick="injectFailure('db')">
+        <strong>DB corruption detected</strong>
+        <span>Checksum mismatch on orders table</span>
+      </div>
+      <div class="modal-option" onclick="injectFailure('k8s')">
+        <strong>K8s CrashLoopBackOff</strong>
+        <span>payment-service pod cycling every 30s</span>
+      </div>
+      <div class="modal-cancel" onclick="closeModal()">cancel</div>
+    </div>
+
+    <div class="layout">
+
+      <div class="topbar">
+        <div class="topbar-left">
+          <span class="logo">FAILSIM</span>
+          <span class="p1-badge">P1</span>
+          <span class="scenario-badge">AWS eu-west-1 failure</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <span class="pulse-dot"></span>
+          <span class="elapsed" id="elapsed">00:23:14 elapsed</span>
+          <span class="session-id">Session #91</span>
+        </div>
+      </div>
+
+      <div class="left-col">
+        <div class="panel-label">Bridge participants</div>
+        <div class="roster-item">
+          <div class="avatar av-human">YO</div>
+          <div><div class="roster-name">You</div><div class="roster-role">Incident Manager</div></div>
+          <div class="online-dot"></div>
+        </div>
+        <div class="roster-item">
+          <div class="avatar av-ai">S</div>
+          <div><div class="roster-name">Sarah (AI)</div><div class="roster-role">IM Support</div></div>
+          <div class="online-dot"></div>
+        </div>
+        <div class="roster-item">
+          <div class="avatar av-ai">E</div>
+          <div><div class="roster-name">Emma (AI)</div><div class="roster-role">Comms Lead</div></div>
+          <div class="online-dot"></div>
+        </div>
+        <div class="roster-item">
+          <div class="avatar av-ai">A</div>
+          <div><div class="roster-name">Aoife (AI)</div><div class="roster-role">SRE Lead</div></div>
+          <div class="online-dot"></div>
+        </div>
+        <div class="roster-item">
+          <div class="avatar av-ai">C</div>
+          <div><div class="roster-name">Conor (AI)</div><div class="roster-role">Change Manager</div></div>
+          <div class="online-dot"></div>
+        </div>
+        <div class="roster-item">
+          <div class="avatar av-ai">N</div>
+          <div><div class="roster-name">Niamh (AI)</div><div class="roster-role">Problem Manager</div></div>
+          <div class="online-dot"></div>
+        </div>
+        <div class="divider"></div>
+        <div class="panel-label">Service owners</div>
+        <div class="roster-item">
+          <div class="avatar av-warn">D</div>
+          <div><div class="roster-name">Declan (AI)</div><div class="roster-role">Service Owner</div></div>
+          <div class="offline-dot"></div>
+        </div>
+        <div class="roster-item">
+          <div class="avatar av-warn">F</div>
+          <div><div class="roster-name">Fiona (AI)</div><div class="roster-role">Head of Platform</div></div>
+          <div class="offline-dot"></div>
+        </div>
+      </div>
+
+      <div class="center-col">
+        <div class="timeline-tabs">
+          <div class="tab active" onclick="filterTimeline('all',this)">All</div>
+          <div class="tab" onclick="filterTimeline('ai',this)">AI</div>
+          <div class="tab" onclick="filterTimeline('action',this)">Actions</div>
+          <div class="tab" onclick="filterTimeline('system',this)">System</div>
+        </div>
+        <div class="timeline" id="timeline">
+          <div class="tl-entry" data-cat="system">
+            <div class="tl-time">00:00</div>
+            <div class="tl-dot dot-system"></div>
+            <div class="tl-body"><span class="tl-actor">System</span> <span class="tl-msg">— Incident opened. Scenario: AWS eu-west-1 region failure. Services affected: checkout, auth, media-cdn.</span></div>
+          </div>
+          <div class="tl-entry" data-cat="ai">
+            <div class="tl-time">00:01</div>
+            <div class="tl-dot dot-im"></div>
+            <div class="tl-body"><span class="tl-actor">Sarah</span> <span class="tl-msg">— Bridge is now open. All teams please confirm attendance. Severity is P1. We are running ITIL Major Incident protocol.</span></div>
+          </div>
+          <div class="tl-entry" data-cat="ai">
+            <div class="tl-time">00:02</div>
+            <div class="tl-dot dot-comms"></div>
+            <div class="tl-body"><span class="tl-actor">Emma</span> <span class="tl-msg">— Paging SRE Lead, Problem Manager, and Change Manager. Stakeholder notification going out now to C-suite.</span></div>
+          </div>
+          <div class="tl-entry" data-cat="ai">
+            <div class="tl-time">00:04</div>
+            <div class="tl-dot dot-ai"></div>
+            <div class="tl-body"><span class="tl-actor">Niamh</span> <span class="tl-msg">— Problem Manager on bridge. Logs show eu-west-1 AZ degradation starting 00:00 UTC. Likely EC2 capacity event. Opening Problem Record PR-0041.</span></div>
+          </div>
+          <div class="tl-entry" data-cat="action">
+            <div class="tl-time">00:07</div>
+            <div class="tl-dot dot-action"></div>
+            <div class="tl-body"><span class="tl-actor">You</span> <span class="tl-msg">— Approved failover to eu-central-1. SRE team to proceed with Route 53 weight shift.</span><span class="tl-tag tag-warn">action taken</span></div>
+          </div>
+          <div class="tl-entry" data-cat="ai">
+            <div class="tl-time">00:09</div>
+            <div class="tl-dot dot-ai"></div>
+            <div class="tl-body"><span class="tl-actor">Conor</span> <span class="tl-msg">— EBF-0091 raised for Route 53 weight shift. Awaiting IM approval before proceeding.</span></div>
+          </div>
+          <div class="tl-entry" data-cat="action">
+            <div class="tl-time">00:11</div>
+            <div class="tl-dot dot-action"></div>
+            <div class="tl-body"><span class="tl-actor">You</span> <span class="tl-msg">— EBF-0091 approved.</span><span class="tl-tag tag-ok">approved</span></div>
+          </div>
+          <div class="tl-entry" data-cat="ai">
+            <div class="tl-time">00:13</div>
+            <div class="tl-dot dot-ai"></div>
+            <div class="tl-body"><span class="tl-actor">Aoife</span> <span class="tl-msg">— Route 53 weight shift to eu-central-1 complete. Monitoring error rates. Checkout latency still elevated at 4.2s p99.</span></div>
+          </div>
+          <div class="tl-entry" data-cat="system">
+            <div class="tl-time">00:18</div>
+            <div class="tl-dot dot-action"></div>
+            <div class="tl-body"><span class="tl-actor">System</span> <span class="tl-msg">— SLA breach: Time-to-workaround exceeded 15-min threshold.</span><span class="tl-tag tag-breach">SLA breach</span></div>
+          </div>
+          <div class="tl-entry" data-cat="ai">
+            <div class="tl-time">00:21</div>
+            <div class="tl-dot dot-comms"></div>
+            <div class="tl-body"><span class="tl-actor">Emma</span> <span class="tl-msg">— Second stakeholder update sent. Estimated resolution window communicated as 30 mins.</span></div>
+          </div>
+          <div class="tl-entry" data-cat="ai">
+            <div class="tl-time">00:23</div>
+            <div class="tl-dot dot-ai"></div>
+            <div class="tl-body"><span class="tl-actor">Aoife</span> <span class="tl-msg">— Error rates dropping. p99 now 1.8s. eu-central-1 handling full traffic load. Recommend holding 5 mins before declaring workaround in place.</span></div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="action-btn primary" onclick="openModal()"><i class="ti ti-bolt" aria-hidden="true"></i> Inject failure</button>
+          <button class="action-btn"><i class="ti ti-message-circle" aria-hidden="true"></i> Communicate</button>
+          <button class="action-btn"><i class="ti ti-arrow-up-circle" aria-hidden="true"></i> Escalate</button>
+        </div>
+      </div>
+
+      <div class="right-col">
+        <div class="panel-label">Team score</div>
+        <div class="score-card">
+          <div class="score-num" id="scoreNum">62</div>
+          <div class="score-label">/ 100 — live score</div>
+          <div class="score-sub" id="scoreSub">SLA breach −15 pts</div>
+        </div>
+        <div class="divider" style="margin:0 12px;"></div>
+        <div class="panel-label">Metrics</div>
+        <div class="metric-row"><span class="metric-key">Response time</span><span class="metric-val warn">4 min 12s</span></div>
+        <div class="metric-row"><span class="metric-key">Time to workaround</span><span class="metric-val bad">23m 14s</span></div>
+        <div class="metric-row"><span class="metric-key">SLA breaches</span><span class="metric-val bad" id="slaBreachCount">1</span></div>
+        <div class="metric-row"><span class="metric-key">EBF compliance</span><span class="metric-val ok">100%</span></div>
+        <div class="metric-row"><span class="metric-key">Comms sent</span><span class="metric-val ok">2</span></div>
+        <div class="divider" style="margin:8px 12px;"></div>
+        <div class="panel-label">SLA targets</div>
+        <div class="sla-bar-wrap">
+          <div class="sla-bar-label"><span>TTW (15 min)</span><span style="color:#A32D2D;">BREACHED</span></div>
+          <div class="sla-bar"><div class="sla-fill fill-red" style="width:100%;"></div></div>
+        </div>
+        <div class="sla-bar-wrap">
+          <div class="sla-bar-label"><span>TTR (60 min)</span><span id="ttrLabel">39% used</span></div>
+          <div class="sla-bar"><div class="sla-fill fill-amber" id="ttrBar" style="width:39%;"></div></div>
+        </div>
+        <div class="divider" style="margin:4px 12px;"></div>
+        <div class="panel-label">AI advisor</div>
+        <div class="ai-suggest">
+          <div class="ai-suggest-label">&#10024; Suggested action</div>
+          <div class="ai-suggest-text" id="aiSuggest">Declare workaround in place once Aoife confirms stability. Raise ECR-0091 for permanent fix before next business day.</div>
+        </div>
+        <div class="ai-next-fail">
+          <div class="ai-next-label">&#9888; Next scenario</div>
+          <div class="ai-next-text" id="aiNext">Redis OOM likely given cross-region traffic spike — cache miss storm incoming.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer-note">failsim.ai &nbsp;·&nbsp; Interactive demo — click "Inject failure" to trigger compounding scenarios &nbsp;·&nbsp; ITIL Major Incident protocol</div>
+</div>
+
+<script>
+  let seconds = 23*60+14;
+  let scoreVal = 62;
+  let slaBreaches = 1;
+  let activeFilter = 'all';
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  setInterval(()=>{
+    seconds++;
+    const m = Math.floor(seconds/60);
+    const s = seconds%60;
+    document.getElementById('elapsed').textContent = pad(m)+':'+pad(s)+' elapsed';
+    const ttrPct = Math.min(99, Math.round((seconds/3600)*100));
+    document.getElementById('ttrBar').style.width = ttrPct+'%';
+    document.getElementById('ttrLabel').textContent = ttrPct+'% used';
+    if(ttrPct>60){ document.getElementById('ttrBar').className='sla-fill fill-red'; }
+    else if(ttrPct>40){ document.getElementById('ttrBar').className='sla-fill fill-amber'; }
+  }, 1000);
+
+  function openModal(){
+    document.getElementById('overlay').style.display='block';
+    document.getElementById('injectModal').style.display='block';
+  }
+  function closeModal(){
+    document.getElementById('overlay').style.display='none';
+    document.getElementById('injectModal').style.display='none';
+  }
+
+  const failures = {
+    redis:{
+      actor:'System', cat:'system', dotCls:'dot-action', tag:'tag-inject', tagLabel:'new failure injected',
+      msg:'Redis OOM triggered. Cache hit rate dropped to 0%. DB query load spiking — checkout experiencing 12s timeouts.',
+      suggest:'Flush Redis and increase maxmemory-policy to allkeys-lru. Page Aoife for emergency cache restart.',
+      next:'With DB under load, watch for connection pool exhaustion on RDS. Set pool alert threshold now.',
+      score:-8, scoreSub:'Redis OOM −8 pts (compounding failure)'
+    },
+    tls:{
+      actor:'System', cat:'system', dotCls:'dot-action', tag:'tag-inject', tagLabel:'new failure injected',
+      msg:'TLS certificate expired on api.prod.example.com. All HTTPS handshakes failing. Mobile app showing SSL errors to users.',
+      suggest:'Trigger ACM cert renewal immediately. If unavailable, use cached cert from secrets manager as stopgap.',
+      next:'Check cert expiry across all domains — this wasn\'t caught by monitoring. Review alerting gaps in PIR.',
+      score:-10, scoreSub:'TLS expiry −10 pts (missed monitoring)'
+    },
+    db:{
+      actor:'System', cat:'system', dotCls:'dot-action', tag:'tag-breach', tagLabel:'data integrity risk',
+      msg:'DB corruption detected on orders table. Checksum mismatch on 14,000 rows. Write operations suspended as precaution.',
+      suggest:'Do NOT attempt in-place repair under pressure. Initiate PITR restore from last clean snapshot. Notify DPO.',
+      next:'Financial reconciliation will be needed post-incident. Prepare data integrity report for compliance.',
+      score:-20, scoreSub:'DB corruption −20 pts (data integrity risk)'
+    },
+    k8s:{
+      actor:'System', cat:'system', dotCls:'dot-action', tag:'tag-inject', tagLabel:'new failure injected',
+      msg:'payment-service pod in CrashLoopBackOff. OOMKilled after 312MB. Last 3 restarts in 90 seconds.',
+      suggest:'Increase memory limit to 512Mi via kubectl patch and raise ECR. Check for recent config map change in last deploy.',
+      next:'If OOM persists after limit increase, suspect memory leak. Heap dump needed before next restart.',
+      score:-12, scoreSub:'K8s crash loop −12 pts'
+    }
+  };
+
+  function injectFailure(type){
+    closeModal();
+    const f = failures[type];
+    const m = Math.floor(seconds/60);
+    const s = seconds%60;
+    const entry = document.createElement('div');
+    entry.className = 'tl-entry';
+    entry.setAttribute('data-cat', f.cat);
+    entry.innerHTML =
+      '<div class="tl-time">'+pad(m)+':'+pad(s)+'</div>'+
+      '<div class="tl-dot '+f.dotCls+'"></div>'+
+      '<div class="tl-body"><span class="tl-actor">'+f.actor+'</span> <span class="tl-msg">— '+f.msg+'</span><span class="tl-tag '+f.tag+'">'+f.tagLabel+'</span></div>';
+    const tl = document.getElementById('timeline');
+    tl.appendChild(entry);
+    tl.scrollTop = tl.scrollHeight;
+    if(activeFilter !== 'all' && f.cat !== activeFilter){ entry.style.display='none'; }
+    scoreVal = Math.max(0, scoreVal + f.score);
+    slaBreaches++;
+    document.getElementById('scoreNum').textContent = scoreVal;
+    document.getElementById('scoreSub').textContent = f.scoreSub;
+    document.getElementById('slaBreachCount').textContent = slaBreaches;
+    document.getElementById('aiSuggest').textContent = f.suggest;
+    document.getElementById('aiNext').textContent = f.next;
+  }
+
+  function filterTimeline(filter, el){
+    activeFilter = filter;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.tl-entry').forEach(entry => {
+      const cat = entry.getAttribute('data-cat');
+      if(filter === 'all'){ entry.style.display = ''; }
+      else { entry.style.display = (cat === filter) ? '' : 'none'; }
+    });
+  }
+</script>
+
+</body>
+</html>
